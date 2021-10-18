@@ -1,0 +1,14 @@
+{
+  "name": "baza_tagil",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "run": "node index.js -c nodemon"
+  },
+  "dependencies": {
+    "puppeteer": "^10.4.0",
+    "transliteration": "^2.2.0",
+    "fs": "^0.0.1-security",
+    "play-sound": "^1.1.3"
+  }
+}

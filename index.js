@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const fs = require("fs");
 const {slugify} = require('transliteration');
+const linksJSON = require("./links/links.json");
 
 (async () => {
     const exist_pages = './exist_pages';
@@ -8,57 +9,67 @@ const {slugify} = require('transliteration');
     let linksJSON = require("./links/links.json");
 
 
-
     const browser = await puppeteer.launch({
         headless: false,
         devtools: false,
-        userDataDir: './cacahe',
+        userDataDir: './cache2',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-accelerated-2d-canvas',
             '--disable-dev-shm-usage',
             '--disable-gpu',
+            //'--proxy-server=194.233.69.90:443',
+            '--netifs-to-ignore=INTERFACE_TO_IGNORE',
             //'--window-size=1920x720',
-            '--blink-settings=imagesEnabled=false',
+            // '--blink-settings=imagesEnabled=false',
         ],
         'ignoreHTTPSErrors': true
     });
 
     const page = await browser.newPage();
     await page.setCacheEnabled(true);
+    //await page.setJavaScriptEnabled(false);
     await page.setDefaultNavigationTimeout(0);
     await page.setViewport({width: 1280, height: 1024});
 
-    await pageOpen(start_url);
-    await rinLInksjson();
-    async function pageOpen(u) {
 
+    if (await pageOpen(start_url)) {
+        await rinLInksjson();
+    }
+
+
+    async function pageOpen(u) {
+        const index = linksJSON.indexOf(u);
         let urlstr = decodeURIComponent(new URL(u).pathname.replace(/\//g, '_'));
 
         if (!fs.existsSync(`${exist_pages}/${urlstr}`)) {
             await page.goto(u);
 
             try {
-                console.log('start url', urlstr);
+                console.log(`start url: ${urlstr} index: ${index}`);
 
-                await page.waitForSelector('#myForm', {timeout: 3000});
+                await page.waitForSelector('#myForm', {timeout: 0});
                 const data = await page.content();
                 const html = data.toString('utf8');
                 await getLinks();
                 await parseable(urlstr);
-                await fs.writeFileSync(`${exist_pages}/${urlstr}`,html);
+                await fs.writeFileSync(`${exist_pages}/${urlstr}`, html);
 
             } catch (e) {
                 console.log('error seletor', e);
+                await page.close();
+                await browser.close();
+                return false;
             }
         } else {
-            console.log('url exist', urlstr);
+            //console.log('url exist', urlstr);
         }
         return true;
     }
 
     async function getLinks() {
+
         const hrefs = await page.$$eval('a', as => as.map(a => a.href));
         for (const value of hrefs) {
 
@@ -84,11 +95,12 @@ const {slugify} = require('transliteration');
 
 
     async function rinLInksjson() {
-
         for (const valueUrl of linksJSON) {
-            //
-            await pageOpen(encodeURI(valueUrl));
+            //const index = linksJSON.indexOf(valueUrl);
+            await pageOpen((valueUrl));
         }
+
+
     }
 
     async function parseable(url) {
